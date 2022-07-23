@@ -9,3 +9,8 @@ type Struct struct {
 func Hello(s Struct) {
 	fmt.Print(s.Name)
 }
+
+var (
+	Foo  = "Bar"
+	File = "1.go"
+)

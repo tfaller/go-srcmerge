@@ -25,6 +25,22 @@ func RemoveGenDeclByName(declarations []ast.Decl, name string) []ast.Decl {
 				if spec.Name.Name != name {
 					newSpecs = append(newSpecs, spec)
 				}
+			case *ast.ValueSpec:
+				names := spec.Names[:0]
+				values := spec.Values[:0]
+				for i, ident := range spec.Names {
+					if ident.Name != name {
+						names = append(names, ident)
+						values = append(values, spec.Values[i])
+					}
+				}
+				if len(names) > 0 {
+					spec.Names = names
+					spec.Values = values
+					newSpecs = append(newSpecs, spec)
+				}
+			default:
+				newSpecs = append(newSpecs, spec)
 			}
 		}
 		if len(newSpecs) > 0 {
