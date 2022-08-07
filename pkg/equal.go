@@ -45,6 +45,8 @@ func NodeEqual(a, b ast.Node) error {
 		return ValueEqual(a, b.(*ast.ValueSpec))
 	case *ast.ArrayType:
 		return ArrayTypeEqual(a, b.(*ast.ArrayType))
+	case *ast.SelectorExpr:
+		return SelectorExprEqual(a, b.(*ast.SelectorExpr))
 	}
 	return fmt.Errorf("unknown node type %q", aT)
 }
@@ -152,4 +154,14 @@ func StructEqual(a, b *ast.StructType) error {
 		return fmt.Errorf("incomplete struct")
 	}
 	return FieldListEqual(a.Fields, b.Fields)
+}
+
+func SelectorExprEqual(a, b *ast.SelectorExpr) error {
+	if err := IdentEqual(a.Sel, b.Sel); err != nil {
+		return fmt.Errorf("selector name not equal: %w", err)
+	}
+	if err := NodeEqual(a.X, b.X); err != nil {
+		return fmt.Errorf("selector source not equal: %w", err)
+	}
+	return nil
 }
