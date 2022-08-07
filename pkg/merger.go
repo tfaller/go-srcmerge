@@ -7,6 +7,7 @@ import (
 	"log"
 	"path"
 	"strconv"
+	"strings"
 )
 
 type Merger struct {
@@ -84,13 +85,26 @@ func (m *Merger) Merge(b *ast.File, duplicatePostfix string) error {
 			m.declares[name] = dec
 			continue
 		}
-		if err := NodeEqual(dec, dup); err != nil {
+		if err := NodeEqual(dup, dec); err != nil {
 			// ups ... name conflict
-			newName := name + duplicatePostfix
-			log.Printf("name conflict of declaration %q: %v", name, err)
-			log.Printf("rename %q -> %q", name, newName)
-			RenameDeclarations(b, name, newName)
-			m.declares[newName] = dec
+			if additional, ok := err.(ErrAdditionalFields); ok {
+				// however ... just additional fields ... we can merge them
+				if len(additional.B) > 0 {
+					log.Printf("add additional fields (%v) to %v", strings.Join(additional.B, ","), name)
+					err = mergeFields(dup.(*ast.StructType), dec.(*ast.StructType), additional.B)
+					if err != nil {
+						return err
+					}
+				}
+				b.Decls = RemoveGenDeclByName(b.Decls, name)
+				log.Printf("removed duplicate %q", name)
+			} else {
+				newName := name + duplicatePostfix
+				log.Printf("name conflict of declaration %q: %v", name, err)
+				log.Printf("rename %q -> %q", name, newName)
+				RenameDeclarations(b, name, newName)
+				m.declares[newName] = dec
+			}
 		} else {
 			// remove instance of duplicate declaration
 			b.Decls = RemoveGenDeclByName(b.Decls, name)
@@ -154,4 +168,15 @@ func findImports(file *ast.File) (map[string]string, error) {
 		imports[impName] = impPath
 	}
 	return imports, nil
+}
+
+func mergeFields(a, b *ast.StructType, fields []string) error {
+	bFields, err := FieldListToMap(b.Fields)
+	if err != nil {
+		return err
+	}
+	for _, name := range fields {
+		a.Fields.List = append(a.Fields.List, bFields[name].ToAstField())
+	}
+	return nil
 }

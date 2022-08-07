@@ -4,7 +4,20 @@ import (
 	"fmt"
 	"go/ast"
 	"reflect"
+	"strings"
 )
+
+// ErrAdditionalFields if a field list has additional fields
+type ErrAdditionalFields struct {
+	A []string
+	B []string
+}
+
+func (e ErrAdditionalFields) Error() string {
+	return fmt.Sprintf(
+		"additional fields of a: (%v) and of b: (%v)",
+		strings.Join(e.A, ","), strings.Join(e.B, ","))
+}
 
 // NodeEqual checks whether two nodes represent the same
 // thing. If the are not the same, the first found mismatch will be
@@ -72,13 +85,15 @@ func FieldListEqual(a, b *ast.FieldList) error {
 	if err != nil {
 		return err
 	}
-	if aN, bN := len(aFields), len(bFields); aN != bN {
-		return fmt.Errorf("field num %v != %v", aN, bN)
-	}
+
+	aAdditionalFields := []string{}
+	bAdditionalFields := []string{}
+
 	for name, aField := range aFields {
 		bField, exists := bFields[name]
 		if !exists {
-			return fmt.Errorf("field %v missing", name)
+			aAdditionalFields = append(aAdditionalFields, name)
+			continue
 		}
 		if err := BasicLitEqual(aField.Tag, bField.Tag); err != nil {
 			return fmt.Errorf("tag of field %v is not the same", name)
@@ -86,7 +101,17 @@ func FieldListEqual(a, b *ast.FieldList) error {
 		if err := NodeEqual(aField.Type, bField.Type); err != nil {
 			return fmt.Errorf("%v: %v", name, err)
 		}
+		delete(bFields, name)
 	}
+
+	for name := range bFields {
+		bAdditionalFields = append(bAdditionalFields, name)
+	}
+
+	if len(aAdditionalFields) > 0 || len(bAdditionalFields) > 0 {
+		return ErrAdditionalFields{A: aAdditionalFields, B: bAdditionalFields}
+	}
+
 	return nil
 }
 

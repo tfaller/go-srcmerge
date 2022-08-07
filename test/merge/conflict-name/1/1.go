@@ -3,11 +3,11 @@ package conflict
 import "fmt"
 
 type Struct struct {
-	Name string
+	LastName *string
 }
 
 func Hello(s Struct) {
-	fmt.Print(s.Name)
+	fmt.Print(s.LastName)
 }
 
 var (

@@ -13,10 +13,10 @@ var (
 	File = "0.go"
 )
 
-type Struct1 struct{ Name string }
+type Struct1 struct{ LastName *string }
 
 func Hello1(s Struct1) {
-	fmt.Print(s.Name)
+	fmt.Print(s.LastName)
 }
 
 var (
