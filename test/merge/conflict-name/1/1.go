@@ -4,9 +4,11 @@ import "fmt"
 
 type Struct struct {
 	LastName *string
+	Struct   *Struct
 }
 
 func Hello(s Struct) {
+	s = *s.Struct
 	fmt.Print(s.LastName)
 }
 
