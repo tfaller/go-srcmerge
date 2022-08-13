@@ -188,7 +188,12 @@ func funcName(f *ast.FuncDecl) string {
 	switch t := f.Recv.List[0].Type.(type) {
 	case *ast.StarExpr:
 		str.WriteString("*")
-		str.WriteString(t.X.(*ast.Ident).Name)
+		switch t := t.X.(type) {
+		case *ast.Ident:
+			str.WriteString(t.Name)
+		case *ast.IndexExpr:
+			str.WriteString(t.X.(*ast.Ident).Name)
+		}
 	case *ast.Ident:
 		str.WriteString(t.Name)
 	}
