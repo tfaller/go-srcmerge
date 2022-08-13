@@ -73,6 +73,8 @@ func NodeEqual(a, b ast.Node) error {
 		return CallExprEqual(a, b.(*ast.CallExpr))
 	case *ast.BinaryExpr:
 		return BinaryExprEqual(a, b.(*ast.BinaryExpr))
+	case *ast.RangeStmt:
+		return RangeStmtEqual(a, b.(*ast.RangeStmt))
 	}
 	return fmt.Errorf("unknown node type %q", aT)
 }
@@ -371,6 +373,25 @@ func BinaryExprEqual(a, b *ast.BinaryExpr) error {
 	}
 	if err := NodeEqual(a.Y, b.Y); err != nil {
 		return fmt.Errorf("right operand not equal: %w", err)
+	}
+	return nil
+}
+
+func RangeStmtEqual(a, b *ast.RangeStmt) error {
+	if a.Tok != b.Tok {
+		return fmt.Errorf("different tok")
+	}
+	if err := NodeEqual(a.Key, a.Key); err != nil {
+		return fmt.Errorf("key not equal: %w", err)
+	}
+	if err := NodeEqual(a.Value, b.Value); err != nil {
+		return fmt.Errorf("value not equal: %w", err)
+	}
+	if err := NodeEqual(a.X, b.X); err != nil {
+		return fmt.Errorf("range value not equal: %w", err)
+	}
+	if err := BlockStmtEqual(a.Body, b.Body); err != nil {
+		return fmt.Errorf("body not equal: %w", err)
 	}
 	return nil
 }
