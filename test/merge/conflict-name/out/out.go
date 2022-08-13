@@ -23,7 +23,9 @@ type Struct1 struct {
 }
 
 func Hello1(s Struct1) {
-	s = *s.Struct
+	type NewType Struct1
+	var data struct{ NewType }
+	*s.Struct = Struct1(*data.NewType.Struct)
 	fmt.Print(s.LastName)
 }
 

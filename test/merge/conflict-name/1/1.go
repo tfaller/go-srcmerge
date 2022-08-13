@@ -8,7 +8,13 @@ type Struct struct {
 }
 
 func Hello(s Struct) {
-	s = *s.Struct
+	type NewType Struct
+
+	var data struct {
+		NewType
+	}
+
+	*s.Struct = Struct(*data.NewType.Struct)
 	fmt.Print(s.LastName)
 }
 

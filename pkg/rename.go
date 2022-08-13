@@ -7,8 +7,9 @@ import (
 // RenameDeclarations renames all occurrences of a declaration and their usage.
 func RenameDeclarations(node ast.Node, oldName, newName string) {
 	ast.Inspect(node, func(n ast.Node) bool {
-		if _, ok := n.(*ast.AssignStmt); ok {
-			// don't rename in assign stmt -> no type defs are there
+		if n, ok := n.(*ast.SelectorExpr); ok {
+			// only rename SelectorExpr expression -> not the selector (field) itself
+			RenameDeclarations(n.X, oldName, newName)
 			return false
 		}
 		if field, isField := n.(*ast.Field); isField {
