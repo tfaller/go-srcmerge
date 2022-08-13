@@ -20,6 +20,9 @@ func (f Field) ToAstField() *ast.Field {
 }
 
 func FieldListToMap(fl *ast.FieldList) (map[string]Field, error) {
+	if fl == nil {
+		return nil, nil
+	}
 	fields := map[string]Field{}
 	for _, f := range fl.List {
 		for _, n := range f.Names {
