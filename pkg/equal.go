@@ -47,6 +47,10 @@ func NodeEqual(a, b ast.Node) error {
 		return ArrayTypeEqual(a, b.(*ast.ArrayType))
 	case *ast.SelectorExpr:
 		return SelectorExprEqual(a, b.(*ast.SelectorExpr))
+	case *ast.FuncDecl:
+		return FuncDeclEqual(a, b.(*ast.FuncDecl))
+	case *ast.ReturnStmt:
+		return ReturnStmtEqual(a, b.(*ast.ReturnStmt))
 	}
 	return fmt.Errorf("unknown node type %q", aT)
 }
@@ -162,6 +166,61 @@ func SelectorExprEqual(a, b *ast.SelectorExpr) error {
 	}
 	if err := NodeEqual(a.X, b.X); err != nil {
 		return fmt.Errorf("selector source not equal: %w", err)
+	}
+	return nil
+}
+
+func FuncDeclEqual(a, b *ast.FuncDecl) error {
+	if err := IdentEqual(a.Name, b.Name); err != nil {
+		return fmt.Errorf("name not equal: %w", err)
+	}
+	if err := FieldListEqual(a.Recv, b.Recv); err != nil {
+		return fmt.Errorf("receiver not equal: %w", err)
+	}
+	if err := FuncTypeEqual(a.Type, b.Type); err != nil {
+		return fmt.Errorf("type not equal: %w", err)
+	}
+	if err := BlockStmtEqual(a.Body, b.Body); err != nil {
+		return fmt.Errorf("body not equal: %w", err)
+	}
+	return nil
+}
+
+func FuncTypeEqual(a, b *ast.FuncType) error {
+	if err := FieldListEqual(a.Params, b.Params); err != nil {
+		return fmt.Errorf("params are not equal: %w", err)
+	}
+	if err := FieldListEqual(a.Results, b.Results); err != nil {
+		return fmt.Errorf("results are not equal: %w", err)
+	}
+	if err := FieldListEqual(a.TypeParams, b.TypeParams); err != nil {
+		return fmt.Errorf("type params are not equal: %w", err)
+	}
+	return nil
+}
+
+func BlockStmtEqual(a, b *ast.BlockStmt) error {
+	if len(a.List) != len(b.List) {
+		return fmt.Errorf("different stmt count")
+	}
+	for i, aS := range a.List {
+		bS := b.List[i]
+		if err := NodeEqual(aS, bS); err != nil {
+			return fmt.Errorf("stmt not equal: %w", err)
+		}
+	}
+	return nil
+}
+
+func ReturnStmtEqual(a, b *ast.ReturnStmt) error {
+	if len(a.Results) != len(b.Results) {
+		return fmt.Errorf("different result count")
+	}
+	for i, aR := range a.Results {
+		bR := b.Results[i]
+		if err := NodeEqual(aR, bR); err != nil {
+			return fmt.Errorf("expr not equal: %w", err)
+		}
 	}
 	return nil
 }

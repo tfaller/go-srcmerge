@@ -5,6 +5,22 @@ import (
 	"go/token"
 )
 
+// RemoveDeclByName removes a declaration by its name
+func RemoveDeclByName(declarations []ast.Decl, name string) []ast.Decl {
+	newDecls := make([]ast.Decl, 0, len(declarations))
+	for _, d := range declarations {
+		switch d := d.(type) {
+		case *ast.FuncDecl:
+			if funcName(d) != name {
+				newDecls = append(newDecls, d)
+			}
+		default:
+			newDecls = append(newDecls, d)
+		}
+	}
+	return RemoveGenDeclByName(newDecls, name)
+}
+
 // RemoveGenDeclByName removes a const, var or type by its declaration name.
 // References which use the declared thing are unchanged.
 func RemoveGenDeclByName(declarations []ast.Decl, name string) []ast.Decl {

@@ -96,7 +96,7 @@ func (m *Merger) Merge(b *ast.File, duplicatePostfix string) error {
 						return err
 					}
 				}
-				b.Decls = RemoveGenDeclByName(b.Decls, name)
+				b.Decls = RemoveDeclByName(b.Decls, name)
 				log.Printf("removed duplicate %q", name)
 			} else {
 				newName := name + duplicatePostfix
@@ -107,7 +107,7 @@ func (m *Merger) Merge(b *ast.File, duplicatePostfix string) error {
 			}
 		} else {
 			// remove instance of duplicate declaration
-			b.Decls = RemoveGenDeclByName(b.Decls, name)
+			b.Decls = RemoveDeclByName(b.Decls, name)
 			log.Printf("removed duplicate %q", name)
 		}
 	}
@@ -139,9 +139,7 @@ func findDeclarations(file *ast.File) map[string]ast.Node {
 			return false
 		}
 		if funcDecl, ok := n.(*ast.FuncDecl); ok {
-			if funcDecl.Recv == nil {
-				declares[funcDecl.Name.Name] = funcDecl
-			}
+			declares[funcName(funcDecl)] = funcDecl
 			return false
 		}
 		return true
@@ -179,4 +177,24 @@ func mergeFields(a, b *ast.StructType, fields []string) error {
 		a.Fields.List = append(a.Fields.List, bFields[name].ToAstField())
 	}
 	return nil
+}
+
+func funcName(f *ast.FuncDecl) string {
+	if f.Recv == nil {
+		return f.Name.Name
+	}
+	str := &strings.Builder{}
+
+	switch t := f.Recv.List[0].Type.(type) {
+	case *ast.StarExpr:
+		str.WriteString("*")
+		str.WriteString(t.X.(*ast.Ident).Name)
+	case *ast.Ident:
+		str.WriteString(t.Name)
+	}
+
+	str.WriteString(".")
+	str.WriteString(f.Name.Name)
+
+	return str.String()
 }
