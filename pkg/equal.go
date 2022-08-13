@@ -49,8 +49,30 @@ func NodeEqual(a, b ast.Node) error {
 		return SelectorExprEqual(a, b.(*ast.SelectorExpr))
 	case *ast.FuncDecl:
 		return FuncDeclEqual(a, b.(*ast.FuncDecl))
+	case *ast.FuncType:
+		return FuncTypeEqual(a, b.(*ast.FuncType))
 	case *ast.ReturnStmt:
 		return ReturnStmtEqual(a, b.(*ast.ReturnStmt))
+	case *ast.AssignStmt:
+		return AssignStmtEqual(a, b.(*ast.AssignStmt))
+	case *ast.CompositeLit:
+		return CompositeLitEqual(a, b.(*ast.CompositeLit))
+	case *ast.UnaryExpr:
+		return UnaryExprEqual(a, b.(*ast.UnaryExpr))
+	case *ast.IfStmt:
+		return IfStmtEqual(a, b.(*ast.IfStmt))
+	case *ast.IndexExpr:
+		return IndexExprEqual(a, b.(*ast.IndexExpr))
+	case *ast.DeclStmt:
+		return DeclStmtEqual(a, b.(*ast.DeclStmt))
+	case *ast.GenDecl:
+		return GenDeclEqual(a, b.(*ast.GenDecl))
+	case *ast.TypeSpec:
+		return TypeSpecEqual(a, b.(*ast.TypeSpec))
+	case *ast.CallExpr:
+		return CallExprEqual(a, b.(*ast.CallExpr))
+	case *ast.BinaryExpr:
+		return BinaryExprEqual(a, b.(*ast.BinaryExpr))
 	}
 	return fmt.Errorf("unknown node type %q", aT)
 }
@@ -123,15 +145,18 @@ func FieldListEqual(a, b *ast.FieldList) error {
 
 func ValueEqual(a, b *ast.ValueSpec) error {
 	if err := NodeEqual(a.Type, b.Type); err != nil {
-		return fmt.Errorf("%v different type: %v", a.Names[0].Name, err)
+		return fmt.Errorf("%v different type: %w", a.Names[0].Name, err)
+	}
+	if len(a.Names) != len(b.Names) {
+		return fmt.Errorf("different name count")
 	}
 	for i, name := range a.Names {
 		if err := IdentEqual(name, b.Names[i]); err != nil {
-			return fmt.Errorf("mismatch name: %v", err)
+			return fmt.Errorf("mismatch name: %w", err)
 		}
-		if err := NodeEqual(a.Values[i], b.Values[i]); err != nil {
-			return fmt.Errorf("%v different value: %v", name, err)
-		}
+	}
+	if err := ExprSliceEqual(a.Values, b.Values); err != nil {
+		return fmt.Errorf("values not equal: %w", err)
 	}
 	return nil
 }
@@ -213,14 +238,139 @@ func BlockStmtEqual(a, b *ast.BlockStmt) error {
 }
 
 func ReturnStmtEqual(a, b *ast.ReturnStmt) error {
-	if len(a.Results) != len(b.Results) {
-		return fmt.Errorf("different result count")
+	if err := ExprSliceEqual(a.Results, b.Results); err != nil {
+		return fmt.Errorf("results not equal: %w", err)
 	}
-	for i, aR := range a.Results {
-		bR := b.Results[i]
-		if err := NodeEqual(aR, bR); err != nil {
-			return fmt.Errorf("expr not equal: %w", err)
+	return nil
+}
+
+func AssignStmtEqual(a, b *ast.AssignStmt) error {
+	if err := ExprSliceEqual(a.Lhs, b.Lhs); err != nil {
+		return fmt.Errorf("left hand not equal: %w", err)
+	}
+	if err := ExprSliceEqual(a.Rhs, b.Rhs); err != nil {
+		return fmt.Errorf("right hand not equal: %w", err)
+	}
+	return nil
+}
+
+func ExprSliceEqual(a, b []ast.Expr) error {
+	if len(a) != len(b) {
+		return fmt.Errorf("different expression count")
+	}
+	for i, aE := range a {
+		bE := b[i]
+		if err := NodeEqual(aE, bE); err != nil {
+			return fmt.Errorf("expr %v not equal: %w", i, err)
 		}
+	}
+	return nil
+}
+
+func CompositeLitEqual(a, b *ast.CompositeLit) error {
+	if a.Incomplete || b.Incomplete {
+		return fmt.Errorf("compositeLit is incomplete")
+	}
+	if err := NodeEqual(a.Type, b.Type); err != nil {
+		return fmt.Errorf("type not equal: %w", err)
+	}
+	if err := ExprSliceEqual(a.Elts, b.Elts); err != nil {
+		return fmt.Errorf("values not equal: %w", err)
+	}
+	return nil
+}
+
+func UnaryExprEqual(a, b *ast.UnaryExpr) error {
+	if a.Op != b.Op {
+		return fmt.Errorf("different operator")
+	}
+	if err := NodeEqual(a.X, b.X); err != nil {
+		return fmt.Errorf("different operand: %w", err)
+	}
+	return nil
+}
+
+func IfStmtEqual(a, b *ast.IfStmt) error {
+	if err := NodeEqual(a.Init, b.Init); err != nil {
+		return fmt.Errorf("init not equal: %w", err)
+	}
+	if err := NodeEqual(a.Cond, b.Cond); err != nil {
+		return fmt.Errorf("cond not equal: %w", err)
+	}
+	if err := BlockStmtEqual(a.Body, b.Body); err != nil {
+		return fmt.Errorf("body not equal: %w", err)
+	}
+	if err := NodeEqual(a.Else, b.Else); err != nil {
+		return fmt.Errorf("else not equal: %w", err)
+	}
+	return nil
+}
+
+func IndexExprEqual(a, b *ast.IndexExpr) error {
+	if err := NodeEqual(a.Index, b.Index); err != nil {
+		return fmt.Errorf("index not equal: %w", err)
+	}
+	if err := NodeEqual(a.X, b.X); err != nil {
+		return fmt.Errorf("operand not equal: %w", err)
+	}
+	return nil
+}
+
+func DeclStmtEqual(a, b *ast.DeclStmt) error {
+	if err := NodeEqual(a.Decl, b.Decl); err != nil {
+		return fmt.Errorf("decl not equal: %w", err)
+	}
+	return nil
+}
+
+func GenDeclEqual(a, b *ast.GenDecl) error {
+	if a.Tok != b.Tok {
+		return fmt.Errorf("tok not equal")
+	}
+	if len(a.Specs) != len(b.Specs) {
+		return fmt.Errorf("different spec count")
+	}
+	for i, aS := range a.Specs {
+		bS := b.Specs[i]
+		if err := NodeEqual(aS, bS); err != nil {
+			return fmt.Errorf("spec not equal: %w", err)
+		}
+	}
+	return nil
+}
+
+func TypeSpecEqual(a, b *ast.TypeSpec) error {
+	if err := IdentEqual(a.Name, b.Name); err != nil {
+		return fmt.Errorf("name not equal: %w", err)
+	}
+	if err := NodeEqual(a.Type, b.Type); err != nil {
+		return fmt.Errorf("type not equal: %w", err)
+	}
+	if err := FieldListEqual(a.TypeParams, b.TypeParams); err != nil {
+		return fmt.Errorf("type params not equal: %w", err)
+	}
+	return nil
+}
+
+func CallExprEqual(a, b *ast.CallExpr) error {
+	if err := NodeEqual(a.Fun, b.Fun); err != nil {
+		return fmt.Errorf("fun not equal: %w", err)
+	}
+	if err := ExprSliceEqual(a.Args, b.Args); err != nil {
+		return fmt.Errorf("args not equal: %w", err)
+	}
+	return nil
+}
+
+func BinaryExprEqual(a, b *ast.BinaryExpr) error {
+	if a.Op != b.Op {
+		return fmt.Errorf("different operand")
+	}
+	if err := NodeEqual(a.X, b.X); err != nil {
+		return fmt.Errorf("left operand not equal: %w", err)
+	}
+	if err := NodeEqual(a.Y, b.Y); err != nil {
+		return fmt.Errorf("right operand not equal: %w", err)
 	}
 	return nil
 }
